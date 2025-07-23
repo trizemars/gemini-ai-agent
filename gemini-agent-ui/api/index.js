@@ -42,17 +42,39 @@ const authMiddleware = (req, res, next) => {
 
 // Register a new user
 app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required' });
+  console.log("--- REGISTRATION START ---");
+  try {
+    console.log("Request received for /api/register");
+    const { username, password } = req.body;
+    console.log(`Username: ${username}, Password provided: ${password ? 'Yes' : 'No'}`);
+
+    if (!username || !password) {
+      console.log("Validation failed: Username or password missing.");
+      return res.status(400).json({ message: 'Username and password are required' });
+    }
+
+    if (users.find(u => u.username === username)) {
+      console.log("Validation failed: Username already exists.");
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    console.log("Validation passed. Hashing password...");
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Password hashed successfully.");
+
+    const newUser = { username, password: hashedPassword };
+    users.push(newUser);
+    console.log("New user added to in-memory array.");
+
+    res.status(201).json({ message: 'User registered successfully' });
+    console.log("Response sent successfully.");
+
+  } catch (error) {
+    console.error("!!! CRITICAL ERROR IN REGISTRATION !!!", error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  } finally {
+    console.log("--- REGISTRATION END ---");
   }
-  if (users.find(u => u.username === username)) {
-    return res.status(400).json({ message: 'Username already exists' });
-  }
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = { username, password: hashedPassword };
-  users.push(newUser);
-  res.status(201).json({ message: 'User registered successfully' });
 });
 
 // Login a user
