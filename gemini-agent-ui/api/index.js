@@ -21,7 +21,7 @@ app.use(express.json());
 // --- API Endpoints ---
 
 // Register a new user
-app.post('/api/register', async (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -37,7 +37,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // Login a user
-app.post('/api/login', async (req, res) => {
+app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -76,7 +76,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Protected chat endpoint
-app.post('/api/chat', authMiddleware, async (req, res) => {
+app.post('/chat', authMiddleware, async (req, res) => {
   if (!model) {
     return res.status(500).json({ message: "AI model not initialized. Check API Key." });
   }
