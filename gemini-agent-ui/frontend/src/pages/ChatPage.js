@@ -23,6 +23,7 @@ function ChatPage() {
   const { token, setAuthToken } = useContext(AuthContext);
   const navigate = useNavigate();
   const chatWindowRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleLogout = () => {
     setAuthToken(null); // Clear token from context and local storage
@@ -34,6 +35,28 @@ function ChatPage() {
       chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'File upload failed');
+      }
+      alert(`File uploaded successfully: ${data.path}`);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,6 +121,13 @@ function ChatPage() {
         {isTyping && <TypingIndicator />}
       </div>
       <form onSubmit={handleSubmit} className="chat-form">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          style={{ display: 'none' }}
+        />
+        <button type="button" onClick={() => fileInputRef.current.click()}>Upload</button>
         <input
           type="text"
           value={input}

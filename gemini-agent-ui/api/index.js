@@ -4,6 +4,8 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs'); // Use bcryptjs
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const formidable = require('formidable');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +22,21 @@ app.use(cors());
 app.use(express.json());
 
 // --- API Endpoints ---
+
+// File Upload Endpoint
+app.post('/api/upload', (req, res) => {
+  const form = formidable({});
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      console.error('Error parsing the form:', err);
+      return res.status(500).json({ error: 'Error parsing the form' });
+    }
+    const file = files.file[0];
+    const newPath = `/tmp/${file.originalFilename}`;
+    fs.renameSync(file.filepath, newPath);
+    res.json({ message: 'File uploaded successfully', path: newPath });
+  });
+});
 
 // Register a new user
 app.post('/api/register', async (req, res) => {

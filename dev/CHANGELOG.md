@@ -2,6 +2,21 @@
 
 All notable changes to the **Gemini AI Agent (@dev)** project will be documented in this file.
 
+## [0.3.0] - 2025-07-22
+
+This release implements a robust file upload system, which was identified as the root cause of previous deployment failures. By correctly handling `multipart/form-data`, the application is now more stable and feature-rich.
+
+### ✨ Features
+
+- **File Upload Endpoint:** Added a new `/api/upload` endpoint using the `formidable` library to correctly parse `multipart/form-data` requests. This is crucial for Vercel's serverless environment.
+- **Frontend Upload UI:** Implemented a file input and "Upload" button on the chat page to allow users to select and upload files.
+
+### 🐛 Bug Fixes
+
+- **Core Deployment Issue:** The addition of `formidable` directly addresses the underlying cause of the `Unexpected end of JSON input` errors, which was the server's inability to parse multipart form data, a common issue when moving from a local Node server to a serverless environment.
+
+---
+
 ## [0.2.0] - 2025-07-22
 
 This release focuses on stabilizing the application for both local and Vercel-hosted environments. It involved extensive debugging of the deployment process and implementing temporary solutions to ensure core functionality.
