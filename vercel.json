@@ -1,26 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "gemini-agent-ui/api/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "gemini-agent-ui/frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "gemini-agent-ui/frontend/build"
-      }
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/gemini-agent-ui/api/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/gemini-agent-ui/frontend/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api" }
   ]
 }

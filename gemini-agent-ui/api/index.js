@@ -24,15 +24,13 @@ const users = [];
 const resetTokens = {};
 
 // --- Hardcoded User Initialization ---
-// This function runs once when the serverless function is initialized.
 (async () => {
   try {
-    console.log("Initializing default user...");
     const existingUser = users.find(u => u.username === 'testuser');
     if (!existingUser) {
       const hashedPassword = await bcrypt.hash('password123', 10);
       users.push({ username: 'testuser', password: hashedPassword });
-      console.log("Default user 'testuser' created successfully.");
+      console.log("Default user 'testuser' created.");
     }
   } catch (error) {
     console.error("Failed to create default user:", error);
@@ -60,7 +58,7 @@ const authMiddleware = (req, res, next) => {
 
 // --- API Endpoints ---
 
-// Register a new user (Now with more robust error handling)
+// Register a new user
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
