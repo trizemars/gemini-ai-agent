@@ -31,10 +31,15 @@ app.post('/api/upload', (req, res) => {
       console.error('Error parsing the form:', err);
       return res.status(500).json({ error: 'Error parsing the form' });
     }
-    const file = files.file[0];
-    const newPath = `/tmp/${file.originalFilename}`;
-    fs.renameSync(file.filepath, newPath);
-    res.json({ message: 'File uploaded successfully', path: newPath });
+    try {
+      const file = files.file[0];
+      const newPath = `/tmp/${file.originalFilename}`;
+      fs.renameSync(file.filepath, newPath);
+      res.json({ message: 'File uploaded successfully', path: newPath });
+    } catch (error) {
+      console.error('File system error:', error);
+      res.status(500).json({ error: 'Error saving the uploaded file.' });
+    }
   });
 });
 
