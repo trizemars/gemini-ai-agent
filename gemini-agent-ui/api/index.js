@@ -6,18 +6,16 @@ const bcrypt = require('bcryptjs');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-const port = 3001;
-const JWT_SECRET = 'your-super-secret-key-change-it-later'; // 記得之後要換成更安全的密鑰
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-it-later';
 
 // Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
-
 app.use(cors());
 app.use(express.json());
 
-// In-memory database for users
+// In-memory database for users - NOTE: This will reset on every serverless function invocation.
 const users = [];
 // In-memory store for password reset tokens
 const resetTokens = {};
@@ -73,12 +71,11 @@ app.post('/api/forgot-password', (req, res) => {
   const { username } = req.body;
   const user = users.find(u => u.username === username);
   if (!user) {
-    // 安全起見，即使找不到用戶也回傳成功訊息
     return res.json({ message: 'If a user with that username exists, a password reset link has been sent.' });
   }
   const resetToken = jwt.sign({ username }, JWT_SECRET, { expiresIn: '15m' });
   resetTokens[username] = resetToken;
-  console.log(`Password reset token for ${username}: ${resetToken}`); // In a real app, you'd email this
+  console.log(`Password reset token for ${username}: ${resetToken}`);
   res.json({ message: 'Password reset token generated. In this demo, check the console.' });
 });
 
@@ -89,14 +86,14 @@ app.post('/api/reset-password', async (req, res) => {
         return res.status(400).json({ message: 'Invalid or expired reset token.' });
     }
     try {
-        jwt.verify(token, JWT_SECRET); // Check if token is valid and not expired
+        jwt.verify(token, JWT_SECRET);
         const user = users.find(u => u.username === username);
         if (!user) {
             return res.status(400).json({ message: 'User not found.' });
         }
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
-        delete resetTokens[username]; // Invalidate the token
+        delete resetTokens[username];
         res.json({ message: 'Password has been reset successfully.' });
     } catch (error) {
         res.status(400).json({ message: 'Invalid or expired reset token.' });
@@ -119,6 +116,5 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Backend server with auth listening at http://localhost:${port}`);
-});
+// Export the app for Vercel
+module.exports = app;
