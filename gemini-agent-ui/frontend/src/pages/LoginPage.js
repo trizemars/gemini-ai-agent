@@ -10,6 +10,16 @@ function LoginPage() {
   const { setAuthToken } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const handleTestApi = async () => {
+    try {
+      const response = await fetch('/api/test');
+      const data = await response.json();
+      alert(`Test API Response: ${data.message}`);
+    } catch (err) {
+      alert(`Test API Error: ${err.message}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -50,6 +60,7 @@ function LoginPage() {
         <button type="submit">Login</button>
         <p>Don't have an account? <Link to="/register">Register here</Link></p>
         <p><Link to="/forgot-password">Forgot Password?</Link></p>
+        <button type="button" onClick={handleTestApi} style={{marginTop: '10px'}}>Run API Test</button>
       </form>
     </div>
   );
