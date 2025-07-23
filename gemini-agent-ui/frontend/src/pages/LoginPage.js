@@ -13,19 +13,29 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    console.log('Login attempt started...'); // DEBUG
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
+
+      console.log('Received response from server:', response.status); // DEBUG
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Invalid credentials');
+        console.error('Login failed with message:', data.message); // DEBUG
+        throw new Error(data.message || 'Failed to login');
       }
-      const { token } = await response.json();
-      setAuthToken(token);
-      navigate('/');
+
+      console.log('Received token:', data.token); // DEBUG
+      setAuthToken(data.token);
+      console.log('Token has been set. Navigating to /chat...'); // DEBUG
+      navigate('/chat');
+
     } catch (err) {
+      console.error('An error occurred during login:', err); // DEBUG
       setError(err.message);
     }
   };

@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs'); // Use bcryptjs
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-it-later';
 
 // Initialize Google Generative AI
@@ -21,7 +22,7 @@ app.use(express.json());
 // --- API Endpoints ---
 
 // Register a new user
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -37,15 +38,15 @@ app.post('/register', async (req, res) => {
 });
 
 // Login a user
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Hardcoded user for reliable login
+    // Hardcoded user for reliable login (INSECURE - FOR LOCAL TESTING ONLY)
     const testUser = 'testuser';
-    const testPasswordHash = await bcrypt.hash('password123', 10);
+    const testPassword = 'password123';
 
-    if (username === testUser && await bcrypt.compare(password, testPasswordHash)) {
+    if (username === testUser && password === testPassword) {
       const token = jwt.sign({ username: testUser }, JWT_SECRET, { expiresIn: '1h' });
       return res.json({ token });
     }
@@ -76,7 +77,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Protected chat endpoint
-app.post('/chat', authMiddleware, async (req, res) => {
+app.post('/api/chat', authMiddleware, async (req, res) => {
   if (!model) {
     return res.status(500).json({ message: "AI model not initialized. Check API Key." });
   }
@@ -93,5 +94,12 @@ app.post('/chat', authMiddleware, async (req, res) => {
   }
 });
 
-// Export the app for Vercel
+// Export the app for Vercel serverless functions
+// And also run the server locally if not in a serverless environment
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
 module.exports = app;
