@@ -9,16 +9,36 @@ const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-it-later';
 
 // Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+let genAI;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
+const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash"}) : null;
 
 app.use(cors());
 app.use(express.json());
 
-// In-memory database for users - NOTE: This will reset on every serverless function invocation.
+// In-memory database for users
 const users = [];
 // In-memory store for password reset tokens
 const resetTokens = {};
+
+// --- Hardcoded User Initialization ---
+// This function runs once when the serverless function is initialized.
+(async () => {
+  try {
+    console.log("Initializing default user...");
+    const existingUser = users.find(u => u.username === 'testuser');
+    if (!existingUser) {
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      users.push({ username: 'testuser', password: hashedPassword });
+      console.log("Default user 'testuser' created successfully.");
+    }
+  } catch (error) {
+    console.error("Failed to create default user:", error);
+  }
+})();
+
 
 // Middleware to verify JWT
 const authMiddleware = (req, res, next) => {
@@ -40,52 +60,44 @@ const authMiddleware = (req, res, next) => {
 
 // --- API Endpoints ---
 
-// Register a new user
+// Register a new user (Now with more robust error handling)
 app.post('/api/register', async (req, res) => {
-  console.log("--- REGISTRATION START ---");
   try {
-    console.log("Request received for /api/register");
     const { username, password } = req.body;
-    console.log(`Username: ${username}, Password provided: ${password ? 'Yes' : 'No'}`);
-
     if (!username || !password) {
-      console.log("Validation failed: Username or password missing.");
       return res.status(400).json({ message: 'Username and password are required' });
     }
-
     if (users.find(u => u.username === username)) {
-      console.log("Validation failed: Username already exists.");
       return res.status(400).json({ message: 'Username already exists' });
     }
-
-    console.log("Validation passed. Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Password hashed successfully.");
-
     const newUser = { username, password: hashedPassword };
     users.push(newUser);
-    console.log("New user added to in-memory array.");
-
     res.status(201).json({ message: 'User registered successfully' });
-    console.log("Response sent successfully.");
-
   } catch (error) {
-    console.error("!!! CRITICAL ERROR IN REGISTRATION !!!", error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  } finally {
-    console.log("--- REGISTRATION END ---");
+    console.error("Registration Error:", error);
+    res.status(500).json({ message: 'An error occurred during registration.' });
   }
 });
 
 // Login a user
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
-  if (!user || !await bcrypt.compare(password, user.password)) {
-    return res.status(401).json({ message: 'Invalid credentials' });
+  try {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username);
+    if (!user) {
+        return res.status(401).json({ message: 'User not found.' });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: 'An error occurred during login.' });
   }
-  const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token });
 });
 
 // Forgot password - request a reset token
@@ -97,7 +109,6 @@ app.post('/api/forgot-password', (req, res) => {
   }
   const resetToken = jwt.sign({ username }, JWT_SECRET, { expiresIn: '15m' });
   resetTokens[username] = resetToken;
-  console.log(`Password reset token for ${username}: ${resetToken}`);
   res.json({ message: 'Password reset token generated. In this demo, check the console.' });
 });
 
@@ -125,6 +136,9 @@ app.post('/api/reset-password', async (req, res) => {
 
 // Protected chat endpoint
 app.post('/api/chat', authMiddleware, async (req, res) => {
+  if (!model) {
+    return res.status(500).json({ message: "AI model not initialized. Check API Key." });
+  }
   try {
     const { message } = req.body;
     const chat = model.startChat();
